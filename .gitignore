@@ -1,5 +1,7 @@
 # Ignore *~ files
 **/*~
+# Ignore .vagrant files
+**/.vagrant/
 
 # Ignore build artifacts for all Maven projects
 **/target/
