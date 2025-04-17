@@ -12,6 +12,18 @@ Before diving into the Linux section earlier, we set up a virtual machine using 
 
 Now, we’re going to take that knowledge a step further.
 
+### 🧠 Things to Keep in Mind
+
+For future use purposes:-
+> **Longer boot time** Like `focal64`, `jammy64` (Ubuntu) uses `cloud-init` — so that boot delay + timeout problem might *still* happen. Be sure to keep:
+
+   ```ruby
+   web01.vm.boot_timeout = 300
+   web01.vm.provision "shell", inline: <<-SHELL
+     sudo touch /etc/cloud/cloud-init.disabled
+   SHELL
+   ```
+
 ### What You’ll Learn in This Section
 
 This part of the course will focus heavily on the **Vagrantfile** — the heart of your VM configuration. We’ll cover:
