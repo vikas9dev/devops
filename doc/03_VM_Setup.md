@@ -567,4 +567,17 @@ You can use arrow keys (↑/↓) to scroll through previously entered commands. 
 - **You can safely delete manually created VirtualBox VMs now — we’ll stick with Vagrant moving forward**.
 - Keep the CentOS and Ubuntu Vagrant VMs ready — we’ll use them extensively in the Linux section.
 
+### 🧠 Things to Keep in Mind
+
+For future use purposes:-
+> **Longer boot time** Like `focal64`, `jammy64` (Ubuntu) uses `cloud-init` — so that boot delay + timeout problem might *still* happen. Be sure to keep:
+
+   ```ruby
+   web01.vm.boot_timeout = 300
+   web01.vm.provision "shell", inline: <<-SHELL
+     sudo touch /etc/cloud/cloud-init.disabled
+   SHELL
+   ```
+
 ---
+
