@@ -1,0 +1,25 @@
+Vagrant.configure("2") do |config|
+
+  config.vm.define "web01" do |web01|
+    web01.vm.box = "ubuntu/jammy64"
+    web01.vm.hostname = "web01"
+    web01.vm.network "private_network", ip: "192.168.40.11"
+    web01.vm.provider "virtualbox" do |vb|
+      vb.memory = "1600"
+      vb.cpus = 2
+    end
+    web01.vm.provision "shell", path: "web01.sh"
+  end
+ 
+  config.vm.define "db01" do |db01|
+    db01.vm.box = "centos/stream9"
+    db01.vm.hostname = "db01"
+    db01.vm.network "private_network", ip: "192.168.40.12"
+    db01.vm.provider "virtualbox" do |vb|
+     vb.memory = "1600"
+     vb.cpus = 2
+    end
+    db01.vm.provision "shell", path: "mysql.sh"
+  end
+
+end
