@@ -148,8 +148,6 @@ Let’s break down the essential hardware used to build and connect networks:
 
   Each device in the network — laptop, phone, router — has an IP address. Corporate networks work the same way but at a larger scale, with many routers, switches, firewalls, and multiple ISPs for redundancy and security.
 
----
-
 ### Subnets and IP Addressing
 
 Larger networks are divided into **subnets**, each with its own IP addressing scheme. For example:
