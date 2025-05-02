@@ -999,3 +999,430 @@ It **completely silences** the command — both normal output and error messages
 
 ---
 
+## Understanding Loops in Bash Scripting
+
+Loops are a fundamental part of bash scripting, allowing you to run commands repeatedly without writing them multiple times. In bash, two primary types of loops are commonly used: the **for loop** and the **while loop**. While there are a few others, this section focuses on the **for loop** and how it can simplify repetitive tasks.
+
+The `for` loop is perfect for running a command a specific number of times or iterating over a list of values. For instance, if you need to add ten users using the `useradd` command, the only thing that changes each time is the username. Instead of writing the `useradd` command ten times, you can use a `for` loop to automate the process.
+
+You can also use a `for` loop to run commands across multiple servers. By looping over a list of server addresses, you can log into each one and execute tasks, saving a lot of manual effort and time.
+
+Let’s look at a basic example with a script named `13_for.sh`. Here's what it does:
+
+```bash
+#!/bin/bash
+
+for VAR1 in java .net python ruby php
+do
+  echo "Looping over: $VAR1"
+  sleep 1
+  echo "-------------"
+done
+```
+
+This loop goes through each programming language in the list, assigns it to the variable `VAR1`, and prints it. The `sleep` command is added just to slow it down for better visibility. The loop starts with `for` and ends with `done`, similar to how an `if` block is closed with `fi`.
+
+Now, let’s consider a practical example with a script named `14_for.sh` to add users:
+
+```bash
+#!/bin/bash
+
+my_users="Alpha Beta Gamma"
+
+for usr in $my_users
+do
+  echo "Adding user $usr"
+  useradd $usr
+  id $usr
+  echo "###############"
+done
+```
+
+Here, the script iterates over the list of usernames and creates each user. It also displays the user's ID information and adds a separator for clarity. Since there are three usernames, the loop runs three times.
+
+Using loops like these in your scripts not only makes your code cleaner but also drastically reduces manual work.
+
+```bash
+#!/bin/bash
+echo "Bash version ${BASH_VERSION}"
+for i in {0..10..2}; do
+     echo "Welcome $i times"
+done
+```
+Output:-
+```
+Bash version 5.1.8(1)-release
+Welcome 0 times
+Welcome 2 times
+Welcome 4 times
+Welcome 6 times
+Welcome 8 times
+Welcome 10 times
+```
+```bash
+#!/bin/bash
+echo "Bash version ${BASH_VERSION}"
+for(( c=1; c<=5; c++ )); do
+        echo "Welcome $c times"
+done
+```
+Output:-
+```
+Bash version 5.1.8(1)-release
+Welcome 1 times 
+Welcome 2 times 
+Welcome 3 times 
+Welcome 4 times 
+Welcome 5 times 
+```
+Infinite for loop to print Random numbers:-
+```bash
+#!/bin/bash
+for(( ;; )); do
+        echo $RANDOM
+done
+```
+
+### While Loop in Bash
+
+After understanding how `for` loops work with sequences, let’s dive into the **while loop** in Bash. Unlike the `for` loop, which iterates over a predefined list or sequence, a `while` loop runs **as long as a specified condition remains true**. This makes it ideal for scenarios where you don’t know in advance how many times a block of code needs to execute.
+
+Let’s look at a basic example. Start by initializing a variable:
+
+```bash
+counter=0
+```
+
+Then, write a `while` loop that continues as long as the counter is less than 5:
+
+```bash
+while [ $counter -lt 5 ]
+do
+  echo "Looping..."
+  echo "Value of counter is $counter"
+  sleep 1
+done
+```
+
+If you run this as - is, you'll notice it results in an **infinite loop**. Why? Because the value of `counter` never changes — it's always 0, and 0 is always less than 5. To fix this, you need to **increment the counter within the loop**:
+
+```bash
+counter=$((counter + 1))
+```
+
+Now, the complete loop looks like this:
+
+```bash
+counter=0
+
+while [[ $counter -lt 5 ]]; do
+  echo "Looping..."
+  echo "Value of counter is $counter"
+  sleep 1
+  counter=$(( counter + 1 ))
+done
+
+echo "Out of the loop."
+```
+
+This script will run exactly five times, printing the counter value each time before exiting the loop once the condition becomes false.
+
+#### Creating an Infinite Loop
+
+Sometimes, you might want a loop to run forever—until you manually stop it or break the loop from inside. This is where the `true` keyword comes in:
+
+```bash
+num=2
+
+while true
+do
+  echo $num
+  num=$((num * 2))
+  sleep 1
+done
+```
+
+In this version, we start with the number 2 and keep doubling it on each iteration. Because the condition `true` is always satisfied, the loop will run infinitely. Be cautious with such loops—especially in scripts run as background processes or cron jobs—as they can consume significant system resources if not managed properly.
+
+The `while` loop is powerful when you want code to execute until a dynamic condition changes. Just remember to update your condition inside the loop; otherwise, you risk creating infinite loops that can impact system performance.
+
+---
+
+## Remote Command Execution with SSH in a Vagrant Setup
+
+In this section, we’ll explore how to execute commands remotely from a central machine—referred to as the **script box** — to multiple web servers using SSH (How to execute commands from scriptbox to web01, web02). We'll also add a third machine running Ubuntu, which introduces some OS-specific nuances in handling remote access. Let’s walk through the complete setup and execution process.
+
+We begin with a `Vagrantfile` that defines the following machines:
+
+* **script-box** – the central control node
+* **web01** and **web02** – primary target servers
+* **web03** – an optional Ubuntu machine (you can skip this if your system resources are limited)
+
+Each machine is assigned a static IP address:
+
+* `web01` → 192.168.10.13
+* `web02` → 192.168.10.14
+* `web03` → 192.168.10.15
+
+Save these IP addresses in scriptbox’s **/etc/hosts** file.
+
+```bash
+192.168.10.13 web01
+192.168.10.14 web02
+192.168.10.15 web03
+```
+
+### Testing Remote Connectivity
+
+You can now test connectivity from the script box using ping or SSH. For example:
+
+```bash
+ping web01
+ssh vagrant@web01
+```
+
+Initially, SSH will prompt you to confirm the fingerprint and then request a password. The default username and password are both `vagrant`.
+
+### Handling Ubuntu’s Password Authentication
+
+Ubuntu-based systems like `web03` often disable password authentication by default. If you encounter a `Permission denied (publickey)` error when logging in, follow these steps:
+
+1. Log into `web03` from the host machine (not the script box) using key-based SSH.
+2. Edit the SSH configuration file:
+
+   ```bash
+   sudo vim /etc/ssh/sshd_config
+   sudo -i
+   cd /etc/ssh/sshd_config.d/
+   vim 60-cloudimg-settings.conf
+   ```
+   Ubuntu 20.04+ uses `/etc/ssh/sshd_config.d/` include path to override your main config.
+3. Find and change:
+
+   ```
+   PasswordAuthentication no
+   ```
+
+   to
+
+   ```
+   PasswordAuthentication yes
+   ```
+4. Restart the SSH service:
+
+   ```bash
+   sudo systemctl restart ssh
+   ```
+
+Now you should be able to log into `web03` from the script box using password authentication.
+
+### Creating a Dedicated User for Automation
+
+Instead of using the default `vagrant` user, create a new user named **devops** on each machine. After logging into each web server:
+
+1. Create the user:
+
+   ```bash
+   sudo adduser devops
+   passwd devops
+   ```
+2. Add the user to the sudoers file using `visudo`:
+
+   ```bash
+   devops ALL=(ALL) NOPASSWD:ALL
+   ```
+
+This setup allows the script box to run privileged commands remotely via SSH without interactive password prompts.
+
+### Remote Execution in Action
+
+Once all machines are set up and the `devops` user is ready, you can perform remote command execution directly from the script box using SSH:
+
+```bash
+ssh devops@web01 uptime
+ssh devops@web02 uptime
+ssh devops@web03 uptime
+```
+
+This command:
+
+* Connects to `web01` via SSH
+* Runs the `uptime` command
+* Returns the result to the script box without requiring an interactive login session
+
+This approach is highly efficient for automating system administration tasks such as package installations, user management, or service configuration—especially across multiple machines.
+
+By the end of this setup, you're equipped to perform remote command execution seamlessly from a single control node, making your Bash automation scripts far more powerful and scalable.
+
+### Setting Up Key-Based SSH Authentication for Passwordless Login
+
+When connecting to remote machines using SSH, you're typically prompted for a password each time. While this works, there's a more secure and efficient method: **key-based authentication**. Instead of entering a password on every login, you can configure your system to use a **public-private key pair**, which acts like a lock and key mechanism.
+
+To begin, generate an SSH key pair using the following command (in scriptbox):
+
+```bash
+ssh-keygen
+```
+
+Just press Enter through the prompts to accept the defaults. This will create two files in the `~/.ssh` directory:
+
+* `id_rsa` — your **private key** (keep this secure)
+* `id_rsa.pub` — your **public key** (can be shared)
+
+Think of the public key as the *lock* and the private key as the *key*. To enable passwordless login, you install the public key (the lock) on the remote machines (like `web01`, `web02`, and `web03`), and then use the private key (the key) from your local machine to authenticate.
+
+Use the `ssh-copy-id` command to install your public key onto a remote machine (in scriptbox):
+
+```bash
+ssh-copy-id devops@web01
+ssh-copy-id devops@web02
+ssh-copy-id devops@web03
+```
+
+You'll be asked for the `devops` user’s password once for each machine—after that, the key will handle authentication.
+
+Once done, test your setup:
+
+```bash
+ssh devops@web01
+```
+
+This time, SSH should log in without prompting for a password, thanks to the key stored in `~/.ssh/id_rsa`.
+
+It is same as:-
+
+```bash
+ssh -i ~/.ssh/id_rsa devops@web01
+```
+
+By default, SSH uses `id_rsa` for authentication, but you can also specify a custom key using the `-i` flag:
+
+```bash
+ssh -i ~/.ssh/custom_key devops@web01
+```
+
+To verify your keys:
+
+* View your **private key** with `cat ~/.ssh/id_rsa` (starts with `-----BEGIN OPENSSH PRIVATE KEY-----`)
+* View your **public key** with `cat ~/.ssh/id_rsa.pub` (a shorter string ending with your username and hostname)
+
+These two keys must match for authentication to succeed. With this setup complete, you're now ready for secure and seamless remote command execution.
+
+---
+
+## Automation at Scale
+
+Login to the script box:
+
+```bash
+vagrant ssh scriptbox
+```
+Perform the following operations:
+```bash
+mkdir remote_websetup && cd remote_websetup
+vim remotehosts
+```
+Put the ip address or hostnames in remotehosts file:-
+```
+web01
+web02
+web03
+```
+Now connect to the remote machines using SSH:
+```bash
+for host in `cat remotehosts`;do echo $host; done
+for host in `cat remotehosts`;do ssh devops@$host hostname; done
+for host in `cat remotehosts`;do ssh devops@$host hostname && uptime; done
+for host in `cat remotehosts`;do ssh devops@$host sudo yum install git -y; done
+```
+Create a new script named `multios_websetup.sh` with the following content:
+```bash
+#!/bin/bash
+
+#Variable Declaration
+URL="https://www.tooplate.com/zip-templates/2131_wedding_lite.zip"
+ARTIFACT="2131_wedding_lite"
+TMP_DIR="/tmp/webfiles"
+
+yum help &> /dev/null
+
+if [[ $? -eq 0 ]]; then
+        # Variable setup
+        sudo -i
+        echo "Runnin setup on CentOs"
+        PACKAGE="httpd wget unzip"                                                                               SVC="httpd"
+
+        # Use the variables in the script
+        yum install $PACKAGE -y
+        systemctl enable --now $SVC
+        mkdir -p $TMP_DIR
+        cd $TMP_DIR
+        wget $URL
+        unzip $ARTIFACT.zip
+        cp -r $ARTIFACT/* /var/www/html
+        systemctl restart $SVC
+else
+        sudo -i
+        PACKAGE="apache2 wget unzip"
+        SVC="apache2"
+        echo "Runnin setup on Ubuntu"
+        # Variable setup
+        sudo apt update
+        sudo apt install $PACKAGE -y > /dev/null
+
+        # Use the variables in the script
+        systemctl enable --now $SVC
+        mkdir -p $TMP_DIR
+        cd $TMP_DIR
+        wget $URL > /dev/null
+        unzip $ARTIFACT.zip > /dev/null
+        cp -r $ARTIFACT/* /var/www/html
+        systemctl restart $SVC
+        rm -rf $TEMPDIR
+        systemctl status $SVC
+        ls /var/www/html
+fi 
+```
+Test script locally:-
+```bash
+./multios_websetup.sh
+```
+Now let us put the script `multios_websetup.sh` in remote machines. But before that let us see `scp` command.
+```bash
+echo "testfile" > testfile.txt
+scp testfile.txt devops@web01:/tmp
+```
+But we can't logged in as devops user and try putting the script in the root directory of remote machines.
+
+```bash
+[root@scriptbox ~]# scp testfile.txt devops@web01:/root/
+devops@web01's password:
+dest open("/root/testfile.txt"): Permission denied
+failed to upload file testfile.txt to /root/testfile.txt
+```
+Now let us put the script `multios_websetup.sh` in remote machines. Create a file `webdeploy.sh` and put the script in it.
+
+```bash
+#!/bin/bash
+
+USR='devops'
+
+for host in `cat remotehosts`; do
+        echo "==========================="
+        echo "Connecting to $host"
+        scp multios_websetup.sh $USR@$host:/tmp/
+        echo "Executing Script on $host"
+        ssh $USR@$host /tmp/multios_websetup.sh
+        ssh $USR@$host -rf /tmp/multios_websetup.sh
+        echo "==========================="
+        echo
+done  
+```
+Modify the file permission:
+```bash
+chmod +x webdeploy.sh
+```
+Execute the file:-
+```bash
+./webdeploy.sh
+```
