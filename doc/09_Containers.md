@@ -370,3 +370,5 @@ vagrant halt
 ### Conclusion
 
 In this lecture, we deployed the EMart microservice application using **Docker and Docker Compose**. The architecture ensures scalability, allowing new microservices to be added seamlessly. In the next session, we will explore Docker concepts in more detail.
+
+---

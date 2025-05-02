@@ -46,7 +46,7 @@ Vagrant.configure("2") do |config|
     web03.vm.hostname = "web03"
     web03.vm.boot_timeout = 300
     web03.vm.provision "shell", inline: <<-SHELL
-        sudo touch /etc/cloud/cloud-init.disabled
+    sudo touch /etc/cloud/cloud-init.disabled
     SHELL
   end
 end
@@ -491,3 +491,511 @@ When searching for or printing special characters like `$`, `*`, or `\` in scrip
 Mastering quotes is essential for writing flexible, readable, and bug-free shell scripts. Try experimenting with different scenarios in your terminal to reinforce your understanding.
 
 ---
+
+## Understanding Command Substitution in Shell Scripting
+
+In this section, we’ll explore *command substitution*—a fundamental concept you'll need if you want to write intelligent and dynamic shell scripts.
+
+Command substitution allows you to capture the output of a command and assign it to a variable. You can do this in two ways: using backticks (`` ` ``) or the `$()` syntax. Both achieve the same result, but `$()` is generally preferred for its readability, especially with nested commands.
+
+Let’s take a simple example. The `uptime` command prints system uptime. If you simply assign it like this:
+
+```bash
+up="uptime"
+```
+
+You’re just storing the string “uptime” into the variable `up`, not the command’s output.
+
+To actually store the command’s result, you need to use command substitution:
+
+```bash
+up=$(uptime)
+```
+
+Now, `up` contains the actual output of the `uptime` command.
+
+Let’s look at another example using the `who` command:
+
+```bash
+current_users=$(who)
+```
+
+This captures the list of users currently logged into the system.
+
+You can also use command substitution with filtering tools like `grep` and `awk` to extract specific data. For instance, to get the amount of free RAM:
+
+```bash
+free_ram=$(free -m | grep Mem | awk '{print $4}')
+```
+
+This line filters the memory information and extracts the fourth field, which corresponds to available memory in MB.
+
+Now you can use this variable to print a meaningful message:
+
+```bash
+echo "Available free RAM is $free_ram MB"
+```
+
+Here’s a simple script `6_command_substitution.sh` that demonstrates the power of command substitution to display system health:
+
+```bash
+#!/bin/bash
+
+echo "Welcome $USER on $HOSTNAME"
+
+free_ram=$(free -m | grep Mem | awk '{print $4}')
+load=$(uptime | awk -F 'load average:' '{print $2}')
+root_free=$(df / | tail -1 | awk '{print $4}')
+
+echo "Available free RAM: $free_ram MB"
+echo "Current load average: $load"
+echo "Free root partition space: $root_free"
+```
+
+This script greets the user, then prints useful system information by combining system variables with command substitution. Later in this series, we’ll see how to run this script automatically on login to always stay informed about your system’s health.
+
+---
+
+## Making Environment Variables Permanent with `export`
+
+In this section, we’ll dive into **exporting variables** in the shell—how it works, why it's important, and how to make variables persist across sessions or become available system-wide.
+
+You’ve probably already used variables in your scripts or terminal sessions. However, by default, these variables are **local** to the current shell session. Once you close the terminal or log out, they’re gone. If you want a variable to be accessible to child processes or persist across sessions, you’ll need to **export** it properly.
+
+### Temporary vs Permanent Variables
+
+Let’s say you define a variable:
+
+```bash
+SEASON="Monsoon"
+```
+
+To access it, you use `$SEASON`. But this variable only lives in the current shell. If you log out or open a new terminal, it's gone.
+
+Even if you run a script that tries to use `$SEASON`, it won't work unless the variable is exported. That's because each script runs in a **child shell**, and non-exported variables from the parent shell are not inherited.
+
+To make a variable available to child shells, you need to export it:
+
+```bash
+export SEASON="Monsoon"
+```
+
+Now, any script or command executed from this shell can access `$SEASON`. However, this export is still **temporary**—it will vanish when the shell session ends.
+
+### Making Variables Permanent for a User
+
+To make a variable persist across sessions for a specific user, you can add the export command to that user's **`.bashrc`** or **`.bash_profile`** file located in their home directory.
+
+Example:
+
+```bash
+# Edit the file
+vi ~/.bashrc
+
+# Add the export command
+export SEASON="Monsoon"
+```
+
+Once added, either **restart the shell** or manually source the file:
+
+```bash
+source ~/.bashrc
+```
+
+From now on, every time the user logs in, the variable will be set automatically.
+
+### Setting Environment Variables Globally
+
+If you want to set a variable for **all users** on the system, you should add it to the **`/etc/profile`** file:
+
+```bash
+sudo vi /etc/profile
+
+# Add the global export
+export SEASON="Winter"
+```
+
+This will make the variable available to all users on the system. Source the file:
+
+```bash
+source /etc/profile
+```
+
+Now, this variable will be available to every user when they log in. However, if a user also sets the same variable in their `.bashrc`, that value will **override** the global one. For example, if `/etc/profile` sets `SEASON="Winter"` and a user’s `.bashrc` sets `SEASON="Monsoon"`, then that user will see `"Monsoon"`.
+
+### Recap
+
+* Use `export VAR=value` to make a variable available to child processes.
+* To make it persistent for a user, place the export command in `~/.bashrc` or `~/.bash_profile`.
+* To make it global for all users, place it in `/etc/profile`.
+* Variables in `.bashrc` will override those in `/etc/profile` for the same user.
+
+Understanding and correctly using `export` is essential for creating robust, reusable scripts and environment configurations. 
+
+---
+
+## Making Shell Scripts Interactive with `read`
+
+In this section, we’ll explore how to make your shell scripts interactive using the `read` command. Interactive scripts allow you to accept user input at runtime, enabling dynamic behavior based on that input.
+
+### Capturing User Input with `read`
+
+The `read` command pauses script execution and waits for the user to enter a value. That input is then stored in a variable, which can be used later in the script.
+
+Here’s a simple example:
+
+```bash
+#!/bin/bash
+
+echo "Enter your skill:"
+read SKILL
+echo "Your skill is $SKILL"
+```
+
+When this script runs, it prompts the user to enter a value, stores it in the variable `SKILL`, and then prints it. This is the basic use of `read`.
+
+### Using Options with `read`
+
+The `read` command also supports several useful options:
+
+* `-p` allows you to provide an inline prompt:
+
+  ```bash
+  read -p "Enter your username: " USERNAME
+  ```
+
+* `-s` suppresses user input (ideal for sensitive information like passwords):
+
+  ```bash
+  read -sp "Enter your password: " PASSWORD
+  echo  # Just to move to the next line
+  ```
+
+Using these options, you can create a more user-friendly experience. For example:
+
+```bash
+#!/bin/bash
+
+read -p "Enter your username: " USERNAME
+read -sp "Enter your password: " PASSWORD
+echo
+echo "Hello, $USERNAME!"
+# Do not print the password; -s is used to keep it hidden
+```
+
+When this script runs, the user sees the prompt for a username, types it in, and then is prompted for a password—without the password being echoed to the screen.
+
+### When to Use Interactive Scripts
+
+While `read` makes scripts interactive and flexible, it’s **not recommended** for automated environments like CI/CD pipelines or background processes. In DevOps and automation workflows, scripts should ideally run without requiring user input to avoid errors and interruptions.
+
+However, for learning purposes, testing, or very specific user-driven scripts, `read` can be incredibly useful.
+
+### Summary
+
+* Use `read` to take user input during script execution.
+* Enhance prompts with `-p` and protect sensitive input with `-s`.
+* Avoid interactive scripts in automated or production environments.
+
+---
+
+## Adding Decision Making to Your Shell Scripts with `if` Statements
+
+Welcome to the decision-making part of scripting! Up until now, your shell scripts may have just executed a linear sequence of commands. But what if you want your script to make choices—like reacting to user input or the result of a command? That’s where `if` statements come into play.
+
+### Why Use `if` Statements?
+
+The `if` statement allows your script to evaluate conditions and take different actions depending on whether those conditions are true or false. This adds intelligence and flexibility to your scripts, making them capable of handling real-world scenarios like error checks, validation, branching logic, and more.
+
+### Basic `if` Statement Syntax
+
+Here’s the simplest structure:
+
+```bash
+if [ condition ]; then
+  # commands to run if condition is true
+fi
+```
+Or,
+```bash
+if [[ condition ]]; then
+  # commands to run if condition is true
+fi
+```
+
+Note: there should be a space between `[` and `condition` and another space between `condition` and `]`.
+
+**`[` – Traditional Test Command**
+
+* Also known as `test`, and works in **POSIX-compliant** shells (like `sh`).
+* More limited in syntax and features.
+* Requires **proper quoting** to avoid errors with empty variables or strings with spaces.
+
+**`[[` – Bash Extended Test Command**
+
+* **Bash-specific** (not POSIX), but more powerful and safer.
+* Supports advanced string comparison (`==`, `!=`, `=~` for regex), logical operators (`&&`, `||`) directly.
+* Less error-prone with unquoted variables (though still good practice to quote).
+
+| Feature           | `[`         | `[[`           |    |            |
+| --------------------- | --------------- | ---------------------- | -- | ---------------------- |
+| Shell support     | POSIX, portable | Bash (and some others) |    |            |
+| Safer with empty vars | No          | Yes            |    |            |
+| Regex matching    | No          | Yes (`=~`)         |    |            |
+| Logical ops (`&&`, \`\`)            | No | Yes (inside condition) |
+| Quote handling    | Required    | Optional (mostly)      |    |            |
+
+Use `[[ ... ]]` when writing **Bash scripts** — it's more robust and less prone to bugs. Use `[...]` only if you need **POSIX portability** (e.g., running in `/bin/sh`).
+
+Let’s look at a practical example. Imagine we want to ask the user to enter a number and print a message based on whether that number is greater than 100.
+
+```bash
+#!/bin/bash
+
+read -p "Enter a number: " NUM
+
+if [[ $NUM -gt 100 ]]; then
+  echo "You have entered the if block."
+  sleep 3
+  echo "Your number is greater than 100."
+  date
+else
+  echo "Your number is less than or equal to 100."
+fi
+
+echo "Execution completed."
+```
+
+### Key Points
+
+* **Spacing matters**: Always put spaces inside the square brackets. `[ $NUM -gt 100 ]` is correct. `[ $NUM-gt100 ]` will fail.
+* **Operators**: Use `-gt` for “greater than”, `-lt` for “less than”, `-eq` for “equal to”, etc.
+* **`then` and `fi`**: `then` marks the start of the `if` block, and `fi` (reverse of `if`) closes it.
+* **`else` block**: Use `else` to handle the case when the condition is false.
+
+### Enhancing with `elif`
+
+You can also include `elif` (else-if) to test additional conditions:
+
+```bash
+if [[ $NUM -gt 100 ]]; then
+  echo "Greater than 100"
+elif [[ $NUM -eq 100 ]]; then
+  echo "Exactly 100"
+else
+  echo "Less than 100"
+fi
+```
+
+---
+
+## Using `elif` for Multi-Condition Checks in Shell Scripts
+
+Welcome! In this section, we’ll expand on the decision-making capabilities of shell scripts by introducing the `elif` (else-if) statement. While `if` and `else` help us handle two possible outcomes, real-world scenarios often require more than just a binary choice. That’s where `elif` comes in—it allows us to evaluate multiple conditions in sequence.
+
+### Why Use `elif`?
+
+Imagine you want to check several possible conditions one after another. With just `if` and `else`, you’re limited to two paths. `elif` enables your script to consider multiple outcomes before falling back to a final `else` block.
+
+### Practical Example: Checking Active Network Interfaces
+
+Let’s say we want to check how many active network interfaces are present on a system, excluding the loopback interface. Here’s how we can approach it:
+
+1. Use the `ip addr show` command to list interfaces.
+2. Filter out the loopback interface using `grep -v`.
+3. Count how many times the keyword `mtu` appears (indicating an interface).
+4. Use `elif` to handle multiple scenarios based on the count.
+
+Here's the script:
+
+```bash
+#!/bin/bash
+
+# Count network interfaces (excluding loopback)
+VALUE=$(ip addr show | grep -v "LOOPBACK" | grep -i mtu -c)
+
+if [[ $VALUE -eq 1 ]]; then
+  echo "Found one active network interface."
+elif [[ $VALUE -gt 1 ]]; then
+  echo "Found multiple active network interfaces."
+else
+  echo "No active network interface found."
+fi
+```
+
+### Script Breakdown
+
+* `grep -v "LOOPBACK"`: Excludes loopback interface from the results.
+* `grep -i mtu -c`: Counts the case-insensitive occurrences of `mtu`.
+* `$VALUE`: Stores the count result for condition checks.
+* The `if`, `elif`, and `else` blocks print different messages based on how many interfaces are found.
+
+### Output Example
+
+If the script detects two active interfaces, you’ll see:
+
+```
+Found multiple active network interfaces.
+```
+
+This structured approach helps your scripts become more responsive and informative based on dynamic system states.
+
+---
+
+## Modern and Traditional Bash Comparison Operators – What’s Best to Use?
+
+If you’ve ever looked at a Bash script and thought:
+**“What are these `-gt`, `-eq`, `-lt` operators? Can’t I just use `>`, `==`, or `<` like in other languages?”** — you're not alone. Let's clear the air around comparison operators in Bash and show you the modern and traditional ways to handle them effectively.
+
+### 🧾 The Old-School Way: `-eq`, `-gt`, `-lt`, etc.
+
+These are **arithmetic comparison operators** used with the traditional `[ ]` or the `test` command:
+
+* `-eq` : equal to
+* `-ne` : not equal to
+* `-gt` : greater than
+* `-lt` : less than
+* `-ge` : greater than or equal to
+* `-le` : less than or equal to
+
+Example:
+
+```bash
+if [ "$VALUE" -gt 1 ]; then
+  echo "More than one interface found"
+fi
+```
+
+This approach is still very common, especially in POSIX-compliant scripts.
+
+### ✅ The Modern Way: Using `[[ ]]` with Familiar Symbols
+
+With Bash's `[[ ... ]]`, you can use more familiar operators — especially for **strings**, and in some cases, you can use logical operators more intuitively.
+
+* String comparison:
+
+  * `==` or `=` : equal to
+  * `!=` : not equal
+  * `=~` : regex match
+
+But here's the catch:
+For **numbers**, you still need to use `-gt`, `-lt`, etc., **even inside** `[[ ... ]]`. You **cannot** use `<`, `>`, or `==` for numeric comparison inside `[[ ]]`.
+
+Incorrect numeric comparison (will not work as intended):
+
+```bash
+if [[ $VALUE > 1 ]]; then  # This compares strings, not numbers!
+  echo "Wrong logic!"
+fi
+```
+
+Correct:
+
+```bash
+if [[ $VALUE -gt 1 ]]; then
+  echo "Correct logic"
+fi
+```
+
+So when comparing numbers, even in modern scripts, stick with `-gt`, `-lt`, etc.
+
+### 🧪 File and Boolean Operators
+
+These are single-operand tests for files:
+
+* `-f FILE` : file exists and is a regular file
+* `-d FILE` : directory exists
+* `-e FILE` : file or directory exists
+* `-r FILE` : file is readable
+* `-z` : string is empty
+* `-n` : string is not empty
+
+And don’t forget negation:
+`! -f file.txt` → true if `file.txt` **does not exist**
+
+### 🧠 Real-World Use: Process Monitoring
+
+Let’s say you're checking if Apache is running using its PID file. Here are two valid approaches:
+
+**Using exit code (`$?`)**:
+
+```bash
+systemctl status httpd > /dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+  echo "httpd is running"
+else
+  echo "httpd is not running"
+fi
+```
+
+**Using `-f` to check PID file**:
+
+```bash
+if [[ -f /var/run/httpd/httpd.pid ]]; then
+  echo "httpd is running"
+else
+  echo "Starting httpd..."
+  systemctl start httpd
+fi
+```
+
+Both approaches are valid — pick the one that suits your style or scenario best.
+
+```bash
+if [[ -f /var/run/httpd/httpd.pid ]]; then
+  echo "httpd is running"
+else
+  echo "httpd is not running"
+  echo "Starting httpd..."
+  systemctl start httpd
+  if [[ $? -eq 0 ]]; then
+    echo "httpd started successfully"
+  else
+    echo "Failed to start httpd, Contact Admin"
+  fi
+fi
+```
+
+### ⏰ Bonus Tip: Automate with Cron
+
+Once you’ve written a monitoring script like this, schedule it with a cron job to run every minute:
+
+```bash
+* * * * * /opt/scripts/11_monit.sh >> /var/log/monit_httpd.log 2>&1
+```
+
+This turns your script into a self-healing monitor for the `httpd` service.
+
+### `> /dev/null 2>&1` 
+
+The command:
+
+```bash
+systemctl status httpd > /dev/null 2>&1
+```
+
+breaks down like this:
+
+* `> /dev/null`: This **redirects standard output (stdout)** to `/dev/null`, which is a special file that discards anything written to it. Think of it as a “black hole” for output.
+
+* `2>&1`: This **redirects standard error (stderr)** (file descriptor 2) **to wherever standard output (stdout)** (file descriptor 1) is currently going — in this case, `/dev/null`.
+
+**So what does this do?**
+
+It **completely silences** the command — both normal output and error messages are discarded.
+
+**Why use it?**
+
+* To **run a command quietly** without printing anything to the terminal.
+* Useful in scripts when you're **only interested in the exit status** (`$?`) and not in any output.
+
+### Visual Summary:
+
+| Part        | Meaning                                  |
+| ----------- | ---------------------------------------- |
+| `>`         | Redirect stdout                          |
+| `/dev/null` | Discard the output                       |
+| `2>&1`      | Redirect stderr to where stdout is going |
+
+---
+
