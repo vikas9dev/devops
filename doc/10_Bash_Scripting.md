@@ -2,7 +2,7 @@
 
 Bash scripting is a powerful way to automate tasks, streamline workflows, and manage system configurations in Unix-like operating systems. With a simple text file containing a series of commands, you can perform complex tasks quickly and efficiently.
 
-## VM Setup
+## 1. VM Setup
 
 We will be creating four virtual machines using Vagrant to practice our Bash scripts. Create a directory, and create a `Vagrantfile` in it:
 
@@ -65,7 +65,7 @@ yum install vim -y
 vim firstscript.sh
 ```
 
-## Intro to Bash Scripting
+## 2. Intro to Bash Scripting
 
 A Bash script is essentially a text file containing a series of commands. You can create a script using any text editor, such as `nano`, `vi`, or `gedit`. The first line of the script should specify the interpreter that will execute the script, typically Bash:
 
@@ -143,7 +143,9 @@ The first line of the file should ideally be the shebang (#!/bin/bash) when writ
 
 In vi, to see the line number we can use :**`se nu`**.
 
-## Bash Variables
+---
+
+## 3. Bash Variables
 
 Variables in Bash are temporary storage in memory, holding data that a process can use while it’s running. Once the process ends, all associated data is lost. Variables in a script allow us to store and retrieve data dynamically.
 
@@ -211,7 +213,7 @@ By using variables in Bash scripts, you can make your scripts more adaptable and
 
 ---
 
-## Understanding Command Line Arguments in Bash Scripts
+## 4. Understanding Command Line Arguments in Bash Scripts
 
 In this section, we’ll explore how to work with **command line arguments** in Bash scripts. If you've used commands like `ls`, `cp`, or `mv`, you've already used arguments — for instance, when you run `ls /home/user`, the path `/home/user` is an argument. Similarly, `cp source.txt destination.txt` uses two arguments: the source and destination file paths.
 
@@ -301,7 +303,7 @@ That’s how command line arguments work in Bash. In the next section, we’ll e
 
 ---
 
-## Exploring System Variables in Bash Scripts
+## 5. Exploring System Variables in Bash Scripts
 
 Let us dive into **system-defined variables** in Bash that provide valuable information about the current execution context. These variables are powerful tools that help you manage script behavior, check execution status, and work dynamically with user input. You may have encountered some of them already, such as `$0` for the script name or `$1` to `$9` for command-line arguments. Let's look at several others that are essential in any Bash scripting toolkit.
 
@@ -387,7 +389,7 @@ As you start writing more advanced scripts, especially ones that handle user inp
 
 ---
 
-## Understanding Quotes in Bash: Single vs Double Quotes
+## 6. Understanding Quotes in Bash: Single vs Double Quotes
 
 Let's discuss a fundamental yet often misunderstood concept in Bash scripting — **quotes**. While it may seem simple at first glance, understanding how **single quotes** (`'`) and **double quotes** (`"`) behave can save you a lot of debugging time and make your scripts more predictable and powerful.
 
@@ -492,7 +494,7 @@ Mastering quotes is essential for writing flexible, readable, and bug-free shell
 
 ---
 
-## Understanding Command Substitution in Shell Scripting
+## 7. Understanding Command Substitution in Shell Scripting
 
 In this section, we’ll explore *command substitution*—a fundamental concept you'll need if you want to write intelligent and dynamic shell scripts.
 
@@ -556,7 +558,7 @@ This script greets the user, then prints useful system information by combining 
 
 ---
 
-## Making Environment Variables Permanent with `export`
+## 8. Making Environment Variables Permanent with `export`
 
 In this section, we’ll dive into **exporting variables** in the shell—how it works, why it's important, and how to make variables persist across sessions or become available system-wide.
 
@@ -634,7 +636,7 @@ Understanding and correctly using `export` is essential for creating robust, reu
 
 ---
 
-## Making Shell Scripts Interactive with `read`
+## 9. Making Shell Scripts Interactive with `read`
 
 In this section, we’ll explore how to make your shell scripts interactive using the `read` command. Interactive scripts allow you to accept user input at runtime, enabling dynamic behavior based on that input.
 
@@ -699,7 +701,7 @@ However, for learning purposes, testing, or very specific user-driven scripts, `
 
 ---
 
-## Adding Decision Making to Your Shell Scripts with `if` Statements
+## 10. Adding Decision Making to Your Shell Scripts with `if` Statements
 
 Welcome to the decision-making part of scripting! Up until now, your shell scripts may have just executed a linear sequence of commands. But what if you want your script to make choices—like reacting to user input or the result of a command? That’s where `if` statements come into play.
 
@@ -789,7 +791,7 @@ fi
 
 ---
 
-## Using `elif` for Multi-Condition Checks in Shell Scripts
+## 11. Using `elif` for Multi-Condition Checks in Shell Scripts
 
 Welcome! In this section, we’ll expand on the decision-making capabilities of shell scripts by introducing the `elif` (else-if) statement. While `if` and `else` help us handle two possible outcomes, real-world scenarios often require more than just a binary choice. That’s where `elif` comes in—it allows us to evaluate multiple conditions in sequence.
 
@@ -842,7 +844,7 @@ This structured approach helps your scripts become more responsive and informati
 
 ---
 
-## Modern and Traditional Bash Comparison Operators – What’s Best to Use?
+## 12. Modern and Traditional Bash Comparison Operators – What’s Best to Use?
 
 If you’ve ever looked at a Bash script and thought:
 **“What are these `-gt`, `-eq`, `-lt` operators? Can’t I just use `>`, `==`, or `<` like in other languages?”** — you're not alone. Let's clear the air around comparison operators in Bash and show you the modern and traditional ways to handle them effectively.
@@ -999,7 +1001,7 @@ It **completely silences** the command — both normal output and error messages
 
 ---
 
-## Understanding Loops in Bash Scripting
+## 13. Understanding Loops in Bash Scripting
 
 Loops are a fundamental part of bash scripting, allowing you to run commands repeatedly without writing them multiple times. In bash, two primary types of loops are commonly used: the **for loop** and the **while loop**. While there are a few others, this section focuses on the **for loop** and how it can simplify repetitive tasks.
 
@@ -1148,7 +1150,7 @@ The `while` loop is powerful when you want code to execute until a dynamic condi
 
 ---
 
-## Remote Command Execution with SSH in a Vagrant Setup
+## 14. Remote Command Execution with SSH in a Vagrant Setup
 
 In this section, we’ll explore how to execute commands remotely from a central machine—referred to as the **script box** — to multiple web servers using SSH (How to execute commands from scriptbox to web01, web02). We'll also add a third machine running Ubuntu, which introduces some OS-specific nuances in handling remote access. Let’s walk through the complete setup and execution process.
 
@@ -1310,7 +1312,7 @@ These two keys must match for authentication to succeed. With this setup complet
 
 ---
 
-## Automation at Scale
+## 15. Automation at Scale
 
 Login to the script box:
 
@@ -1426,3 +1428,5 @@ Execute the file:-
 ```bash
 ./webdeploy.sh
 ```
+
+---
