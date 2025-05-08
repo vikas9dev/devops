@@ -14,11 +14,9 @@ Click on **“Launch Instance”**, and let’s configure it step-by-step:
 
 1. **Name and Tags**: Give your instance a name like `web01`. Tags are useful for organization—add key-value pairs like `project: alpha` as needed.
 
-2. **Choose an AMI (Amazon Machine Image)**: You'll see options like Amazon Linux, Ubuntu, and CentOS. Be cautious—some AMIs, especially from the AWS Marketplace or third-party vendors like CIS or OpenVPN, might incur extra costs. For this tutorial, select **CentOS 9 (free)** from AWS Marketplace AMIs, ideally one listed as supported by "Supported Images".
+2. **Choose an AMI (Amazon Machine Image)**: You'll see options like Amazon Linux, Ubuntu, and CentOS. Be cautious—some AMIs, especially from the AWS Marketplace or third-party vendors like CIS or OpenVPN, might incur extra costs. For this tutorial, select **CentOS 9 (free)** from AWS Marketplace AMIs, ideally one listed as supported by "Supported Images" (**Note: it charges for subscription, so you should use `Amazon Linux` instead**).
 
-![CentOS 9 AMI](images/centos9_ami.png)
-
-After selection, it will show pricing but it is for t3 tier, but we will be using t2 free tier. Subscribe it. It will show username: `ec2-user`.
+After selection, It will show username: `ec2-user`.
 
 ![CentOS 9 AMI](images/centos9_ami2.png)
 
