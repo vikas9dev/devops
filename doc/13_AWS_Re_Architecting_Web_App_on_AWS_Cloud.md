@@ -221,7 +221,7 @@ The cluster takes ~5-10 minutes to initialize ⏳. During this time:
 - Configures networking according to our specifications 🌐
 - Applies our custom parameter group settings ⚙️
 
-"**AWS bills for ElastiCache like a hotel room - you pay for every hour it's reserved, whether you sleep there or not.**" 🏨💳. No "pausing" or "stopping" mechanism exists. Node type (cache.t2.micro = ~$0.018/hr ≈ $13/month).Additional charges for: - Data transfer (if applicable), - Backup storage (if enabled).
+"**AWS bills for ElastiCache like a hotel room - you pay for every hour it's reserved, whether you sleep there or not.**" 🏨💳. No "pausing" or "stopping" mechanism exists. Node type (cache.t2.micro = ~$0.018/hr ≈ $13/month). Additional charges for: - Data transfer (if applicable), - Backup storage (if enabled).
 
 🛑 Cost Control Options:
 **DELETE When Not Needed**
@@ -231,12 +231,179 @@ The cluster takes ~5-10 minutes to initialize ⏳. During this time:
 
 ---
 
-## 5.
+## 5. 🚀 Setting Up Amazon MQ (RabbitMQ) for Your Application  
+
+Instead of manually setting up RabbitMQ on an EC2 instance, you can use **Amazon MQ**, a fully managed message broker service from AWS. It supports both **Apache ActiveMQ** and **RabbitMQ**, making it super easy to get started!  
+
+### 🔍 Steps to Create a RabbitMQ Broker  
+
+1. **Search for Amazon MQ** in AWS and select the service.  
+2. Click **"Create Broker"** and choose **RabbitMQ** as your broker type.  
+3. Select **Single Instance Broker** (for cost efficiency, though clustered deployment is recommended for production).  
+4. **Configure Broker Settings:**  
+   - **Name:** Give it a meaningful name (e.g., `VProfile-ReArch-RabbitMQ`).  
+   - **Instance Type:** Choose the smallest (`mq.t3.micro`) to save costs.  
+   - **Credentials:** Set a username (`rabbit`) and a strong password. **Save these!** (You’ll need them for your `application.properties`.)  
+5. **Additional Settings:**  
+   - **Access Type:** Select **Private Access** (since your servers will access it within the same VPC).  
+   - **VPC & Subnet:** Use the **default VPC** if no custom setup exists.  
+   - **Security Group:** Attach the security group you created earlier (`vprofile-rearch-backend-sg`).  
+6. **Review & Create:** Double-check all settings and hit **"Create Broker."**  
+
+⚠️ **Note:** Broker creation may take a few minutes (approx 20 minutes).  
+
+### 🔜 Next Steps  
+While the broker initializes, we still need to **set up the database schema** on RDS. We’ll cover that in the next section—stay tuned! 🎬
 
 ---
 
-## 6.
+## 6. 🛠️ Initializing the RDS Database for VProfile  
+
+Since our **Amazon RDS MySQL instance** is private (not publicly accessible), we need an **EC2 instance in the same VPC** to connect and initialize the database. Here’s how to set it up:  
+
+### 🔹 Step 1: Launch a Temporary EC2 Instance 
+- **Name:** Give it a name like `vprofile-rearch-rds-client`. 
+- **AMI:** Ubuntu Server 24.04  
+- **Instance Type:** `t2.micro` (cost-effective)  
+- **Key Pair:** Use an existing one or create a new key for SSH access.  
+- **Security Group:** Create a new SG (`VProfile-MySQL-Client-SG`) with **SSH (Port 22) restricted to your IP**.  
+- **Launch:** Launch the instance.
+
+### 🔹 Step 2: Allow EC2 to Access RDS  
+- Go to the **RDS Security Group** (`vprofile-rearch-backend-sg`).  
+- Edit **Inbound Rules** → Add **MySQL (3306)** and allow traffic from the **EC2 instance’s Security Group** (`VProfile-MySQL-Client-SG`).  
+
+### 🔹 Step 3: Install MySQL Client & Git  
+SSH into the EC2 instance and run:  
+```bash
+sudo apt update && sudo apt install mysql-client git -y
+```  
+
+### 🔹 Step 4: Connect to RDS & Initialize Schema  
+- **Get RDS Endpoint** from AWS Console.  
+- Log in to MySQL:  
+  ```bash
+  mysql -h [RDS_ENDPOINT] -u admin -p accounts
+  ```  
+  *(Enter password when prompted—avoid passing it directly in the command!)*  
+  Exit from it and let us first deploy the database schema.
+
+- **Clone the VProfile Source Code:**  
+  ```bash
+  git clone -b awsrefactor --single-branch https://github.com/vikas9dev/vprofile-project.git
+  cd vprofile-project
+  ```
+  
+  or,
+
+  ```bash
+  git clone https://github.com/vikas9dev/vprofile-project.git
+  cd vprofile-project
+  git checkout awsrefactor
+  ```  
+
+- **Deploy the DB Schema:**  
+  ```bash
+  mysql -h [RDS_ENDPOINT] -u admin -p accounts < src/main/resources/db_backup.sql
+  ```  
+
+- **Verify Tables:**  
+  ```sql
+  SHOW TABLES;
+  ```  
+  ✅ If tables appear, the database is ready!  
+
+### 🗑️ Cleanup  
+- **Terminate the EC2 instance** (it was only needed for DB setup).  
+
+### 🚀 Next Steps  
+With the **database initialized**, we’ll now deploy the **VProfile app on AWS Elastic Beanstalk**—stay tuned for the next steps! 🎯
 
 ---
 
-## 7.
+## 7. 🚀 Setting Up AWS Elastic Beanstalk for VProfile  
+
+Welcome! In this section, we'll configure an **Elastic Beanstalk environment** to deploy our VProfile application effortlessly. 🌟  
+
+### 🔍 Why Elastic Beanstalk?  
+Remember manually setting up **Tomcat on EC2**? We had to:  
+- Create security groups & key pairs  
+- Configure load balancers & auto-scaling  
+- Build and deploy artifacts via S3  
+
+Beanstalk **automates all this**! It provides:  
+✅ **Pre-configured Tomcat environment**  
+✅ **Auto-scaling & load balancing**  
+✅ **CloudWatch monitoring & logging**  
+✅ **Zero additional cost** (you only pay for underlying resources like EC2)  
+
+Amazon Elastic Beanstalk is an easy-to-use service for deploying and scaling web applications and services developed with Java, .NET, PHP, Node.js, Python, Ruby, Go, and **Docker** on familiar servers such as Apache, Nginx, Passenger, and IIS. It provides a managed service for deploying and scaling web applications and services on AWS.
+
+### ⚙️ Step 1: Create an IAM Role for Beanstalk  
+Beanstalk needs permissions to manage AWS resources. Here’s how to set it up:  
+1. Go to **IAM → Roles → Existing role might not have all the permissions so search for `aws-elasticbeanstalk-service-role` and delete it.
+2. Create Role
+3. Select **AWS Service → EC2**  
+4. Attach these policies:  
+   - `AdministratorAccess-AWS-ElasticBeanstalk`  
+   - `AWSElasticBeanstalkCustomPlatformforEC2Role`  
+   - `AWSElasticBeanstalkRoleSNS`  
+   - `AWSElasticBeanstalkWebTier`  
+5. Name it **`VProfile-Beanstalk-Role`**  
+
+### 🛠️ Step 2: Configure the Beanstalk Environment 
+Go to **Elastic Beanstalk → Environments → Create New Environment -> Environment Tier: Web Server Environment**. 
+1. **Application Name**: `VProfile-ReArch-BeanApp`  
+2. **Environment Name**: `VProfile-Prod` (or `Dev/Test` as needed)  
+3. **Domain**: Choose a **unique URL** (e.g., `vprofile-rearch-[unique-id]`)  
+4. **Platform**: **Tomcat 10 + Corretto 21 (Java 21)**  
+5. **Application Code**: Sample Application. We will upload the WAR artifact later.
+5. **Preset Configuration**: **Custom** (for auto-scaling & load balancing)  
+
+### Service Access
+- **Service Role**: Create and use new service role `aws-elasticbeanstalk-service-role`  
+- **EC2 Instance Profile**: `VProfile-Beanstalk-Role` (Select the one which we had just created).
+
+### 🔗 Networking & Scaling  
+- **VPC**: Use the **default VPC** 
+- **Public IP address**: Activated 
+- **Instance Subnet**: Select all AZs.
+- **Instance Type**: `t2.micro` (cost-effective)  
+- **Database**: Don't select anything.
+- **Tags**: `Project: VProfile-Prod`
+
+### Instances
+- **Root Volume Type**: General Purpose 3(SSD)
+- **Security Groups**: Don't add anything, it will be created automatically by beanstalk then we will edit it later.
+
+**Capacity Settings**
+- **Environment type**:
+- **Capacity**:  
+  - **Min Instances**: 2 (for HA)  
+  - **Max Instances**: 4 (auto-scales based on CPU/Network)  
+- **Instance Types**: `t2.micro` (cost-effective)
+- **Scaling Triggers**: Keep default as of now.
+
+**Load Balancing**
+- **Load Balancer network settings**: Visibility: Public, Load balancer subnets: all AZs selected (default).
+- **Load Balancer Type**: **Application Load Balancer (ALB)**  
+  - **Listener Port**: 80 (HTTP)  
+  - **Enable Stickiness** (for session persistence): In "Process" select `default` and edit it. In sessions => Session Stickiness => Enable. 
+
+### 🔄 Deployment Strategy  
+Choose a **rolling deployment** to avoid downtime:  
+- **Batch Size**: 50% (updates one instance at a time)  
+- **Health Checks**: Enhanced monitoring  
+
+### 🚀 Next Steps  
+Once the environment is ready, we’ll:  
+1. **Build the WAR artifact**  
+2. **Upload it to Beanstalk**  
+3. **Verify deployment**  
+
+Stay tuned—we’ll dive into deployment in the next section! 🎯
+
+---
+
+
+[TO - BE CONTINUED]
