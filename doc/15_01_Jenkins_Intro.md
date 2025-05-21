@@ -1,6 +1,6 @@
 # Jenkins
 
-## 🔄 **Understanding Continuous Integration (CI) & Why Jenkins Matters**  
+## 1. 🔄 **Understanding Continuous Integration (CI) & Why Jenkins Matters**  
 
 ### **🚀 What is Continuous Integration (CI)?**  
 Developers **code → build → test → push** changes to a centralized version control system (like Git). This cycle repeats daily, but here’s the **problem**:  
@@ -48,7 +48,7 @@ We’ll install Jenkins on an **EC2 (Ubuntu)** instance and:
 
 ---
 
-## 🚀 **Installing Jenkins with Vagrant: A Local Development Guide**  
+## 2. 🚀 **Installing Jenkins with Vagrant: A Local Development Guide**  
 
 ### 🔍 **Why Vagrant Instead of EC2 or Docker?**  
 - **Avoid AWS costs**: Vagrant runs locally for free (no cloud charges)  
@@ -191,9 +191,7 @@ vagrant ssh
 
 ---
 
-## Jobs in Jenkins
-
-## 🤖 Jenkins Jobs: Freestyle vs Pipeline as Code 🚀
+## 3. 🤖 Jenkins Jobs: Freestyle vs Pipeline as Code 🚀
 
 Before we dive deep into Jenkins, let's take a moment to understand what **jobs** in Jenkins really mean — and more importantly, how **Freestyle Jobs** compare with **Pipeline as Code** 🛠️.
 
@@ -224,7 +222,7 @@ But don’t worry — before jumping into pipelines, we’ll explore Freestyle j
 
 ---
 
-## 🛠️ Installing and Managing Tools in Jenkins: A Complete Guide
+## 4. 🛠️ Installing and Managing Tools in Jenkins: A Complete Guide
 
 In this lecture, let’s dive into how Jenkins handles tools and plugins—two core pieces you’ll need to run successful builds. 🚀
 
@@ -316,7 +314,7 @@ See you in the next one! 👨‍💻👩‍💻
 
 ---
 
-## 🚀 Creating Your First Jenkins Job: A Hands-On Introduction 👨‍💻🔧
+## 5. 🚀 Creating Your First Jenkins Job: A Hands-On Introduction 👨‍💻🔧
 
 Welcome to Jenkins! 🎉 In this section, we’ll dive into the core of Jenkins—**creating a job**. A *job* in Jenkins is essentially a sequence of tasks or instructions that Jenkins executes to automate your development workflow. These tasks might include actions like cloning code, building it, generating artifacts, and even deploying them. 💡
 
@@ -397,7 +395,7 @@ Stay tuned for the next lecture—more exciting builds ahead! 🚧✨
 
 ---
 
-## 🚀 Building Your First Jenkins Job: From GitHub to Artifact with Maven
+## 6. 🚀 Building Your First Jenkins Job: From GitHub to Artifact with Maven
 
 Welcome to this exciting hands-on session! 👋 In this part of the journey, we’ll walk through creating a **Jenkins build job** that fetches source code from GitHub, builds it using Maven, and archives the resulting artifact. Along the way, we’ll explore tool configuration, build steps, error handling, and best practices for plugin usage. Let’s dive in! 💡
 
@@ -406,17 +404,21 @@ Welcome to this exciting hands-on session! 👋 In this part of the journey, we�
 First, we head to **Manage Jenkins > Tools > JDK Installations**.
 We’ve already configured **JDK 17**, now we’ll add **JDK 21** by simply duplicating the existing configuration and updating the path. This will let us select the appropriate JDK per project—handy when your codebase supports multiple versions! ✅
 
+Add JDK => Name: `JDK_21`, Path: `/usr/lib/jvm/java-21-openjdk-amd64` => Apply => Save. 
+Now while creating the job, we will get option to select JDK version.
+
 ### 📦 Creating the Freestyle Project
 
-Click on **New Item** → choose a **Freestyle Project** and name it something like `vprofile-build`.
+Click on **New Item** → choose a **Freestyle Project** and name it something like `vprofile-build`. Choose **Freestyle Project** and click **OK**.
+
 In the description, mention the purpose—e.g., *Build artifact from vprofile source code*.
 
-Scroll to the **JDK section** and select your desired JDK version. Projects may depend on different Java versions (e.g., JDK 17, 21, etc.), and Jenkins makes switching easy. 🔁
+Scroll to the **JDK section** and select your desired JDK version. Projects may depend on different Java versions (e.g., JDK 17, 21, etc.), and Jenkins makes switching easy. 🔁 Choose `JDK_17`.
 
 ### 🔗 Fetching Code from GitHub
 
 Under **Source Code Management**, choose **Git**.
-Paste the repository URL (e.g., `https://github.com/Atcoder/vprofile-project`) and select the appropriate branch (like `atom`).
+Paste the repository URL (e.g., `https://github.com/vikas9dev/vprofile-project.git`) and select the appropriate branch (give `atom`).
 
 No credentials are needed for public repos, but for private ones, Jenkins lets you add various types of credentials—SSH keys, GitHub apps, passwords, and more. 🔐 You can add them under **Add > Jenkins**, and select them from the dropdown.
 
@@ -440,9 +442,12 @@ Use a pattern like `**/*.war` to find and archive any WAR files created during t
 
 This ensures even if the workspace is wiped, your artifacts are preserved and accessible via Jenkins. 🔍
 
+Save the job and run it! If everything goes well, you should see the artifact in the Job home screen, from there you can download the artifact. In workspace, you'll find the artifact in the `target` directory.
+
 ### 💥 Simulating Errors and Fixes
 
-Let’s try changing the Maven version to **default system Maven**—which might not exist.
+Go to **Configure** and Let’s try changing the Maven version to **default system Maven**—which might not exist. Check (`mvn -version`) to confirm.
+
 When you run the job, it fails, and the console output will show a file-not-found or execution error.
 
 🔍 Use the **Console Output** to debug these issues. Jenkins error logs, though verbose, provide critical clues.
@@ -465,7 +470,7 @@ Rather than starting from scratch, **copy the existing job**:
 
 Now change:
 
-* **Goal** to `test`
+* Maven **Goal** to `test`
 * Remove **Archive Artifact** step
 
 This isolated setup lets you test different JDKs, Maven versions, and branches without affecting the main job.
@@ -474,15 +479,99 @@ This isolated setup lets you test different JDKs, Maven versions, and branches w
 
 There’s a branch called `jdk-11` in the source code. Your challenge:
 
-1. SSH into the Jenkins server and install **JDK 11**
+1. SSH into the Jenkins server and install **JDK 11** (e.g., `sudo apt-fast install openjdk-11-jdk -y`)
 2. Add it in Jenkins’ Global Tool Configuration
-3. Create a new job using this JDK and the `jdk-11` branch
+3. Create a new job using this JDK and the `jdk11` branch
 4. Select different Maven versions and make the build successful ✅
 
 This practical task strengthens your Jenkins fundamentals and prepares you for real-world CI/CD challenges. 🔧
 
 ---
 
-In the next lecture, we’ll explore **plugins**, **versioning**, and smarter ways to manage your build artifacts. Stay tuned and keep experimenting! 🚀
+## 7. 🚀 Mastering Jenkins Plugins, Variables, and Basic Versioning
+
+Welcome to this session! 🎉 Today, we’re diving into some essential Jenkins concepts that will lay the groundwork for everything you'll do with pipelines going forward. We'll explore **plugins**, understand **versioning**, and get hands-on with **variables in Jenkins jobs**. Let’s break it down! 🛠️
+
+### 🔌 Exploring Jenkins Plugins
+
+First stop: **Plugins** – the powerhouse behind Jenkins' flexibility. Head over to **Manage Jenkins ➡️ Plugins** where you’ll find:
+
+* **Updates**: Plugins that need to be updated.
+* **Available**: Search and install new plugins. Want to upload artifacts to S3? Just search for “S3” and install the **S3 Publisher** or any relevant plugin.
+* **Installed**: See all active plugins. You can even disable some, but be careful – plugins often depend on each other!
+* **Advanced**: Upload custom or third-party plugins directly. Super useful for specialized use cases. 🧩
+
+### 🔄 Understanding Versioning in Jenkins
+
+Let’s say you have a build job producing artifacts like `wiprofile-v2.var`. If you run this job repeatedly, the artifact gets overwritten. That’s where **versioning** comes in! 🎯
+
+* Create a new job named `vprofile-versioning`, copy your existing one as a template (`vprofile-build`). Use JDK_21 and Maven_3.9. Remove the existing **Archive Artifact** step.
+* After the build step, add a shell command (**Execute Shell**) to:
+
+  * Create a `versions/` directory (use `mkdir -p` to avoid errors). Due to the `p` flag, if directory exists, do nothing.
+  * Copy the artifact and rename it with a version.
+
+```bash
+mkdir -p versions
+cp target/*.war versions/vprofile-v$BUILD_NUMBER.var
+```
+
+Use Jenkins’ built-in variables like `$BUILD_ID` to dynamically version each build. 📦 Click on apply => save => Build Now. Try building 2-3 times, and in the `versions` directory you will see the multiple versions of the artifact.
+
+### 🧪 Going Further: Parameterized Jobs
+
+Want to manually control the version number? ✔️ Make the job **parameterized**:
+
+* Go to **Configure**
+* Just below the description section. Enable “This project is parameterized”. Add Parameter.
+* Add a **String Parameter** (e.g., `version`). You can skip the default value and description. 
+* Reference it in your shell step like `vprofile-$version.var`.
+
+```bash
+mkdir -p versions
+#cp target/*.war versions/vprofile-v$BUILD_NUMBER.var
+cp target/*.war versions/vprofile-v$version.var
+```
+
+Previously there used to be "Build Now" button, now it is replaced with **Build with Parameters** button. This gives you the flexibility to define version numbers like `2.3.6` at runtime! 📌 Run the job a few times with different versions, and you'll see the artifacts in the `versions` directory.
+
+### ⏱️ Adding Timestamps to Your Artifacts
+
+Need timestamped versions? There's a plugin for that! 🔍
+
+1. Search for and install the **Build Timestamp** plugin.
+2. Go to **Manage Jenkins ➡️ System Configuration**. You will find **Build Timestamp** section there.
+3. Enable the plugin and define your preferred format (e.g., `dd-MM-yy_HH-mm`). Apply => Save.
+4. Use `$BUILD_TIMESTAMP` in your shell script to generate unique file names. Remove the parameterized job.
+
+```bash
+mkdir -p versions
+#cp target/*.war versions/vprofile-v$BUILD_NUMBER.var
+#cp target/*.war versions/vprofile-v$version.var
+cp target/*.war versions/vprofile-v$BUILD_TIMESTAMP.var
+```
+
+Run the job a few times with intervals – you'll see uniquely timestamped artifacts in the workspace. ⌛
+
+### ☁️ Bonus: S3 Integration Preview
+
+Since we installed the `S3 publisher` plugin, head over to **Post-build Actions ➡️ Publish artifacts to S3**. You can set it up to:
+
+* Define credentials or IAM role access 🎫
+* Specify source files and target S3 bucket
+* Automate artifact uploads after every build! 🌐
+
+We’ll explore this in more depth later, so treat this as a sneak peek. 😄
+
+### ✅ What You've Learned
+
+* How to **install, manage, and disable plugins** 🔧
+* Using **environment variables** in Jenkins 🔄
+* Implementing **basic versioning** using build IDs, parameters, and timestamps 🗃️
+* A glimpse into **artifact deployment with plugins** ☁️
+
+Next up: We’re jumping into **Jenkins Pipeline code** – things are about to get exciting! 🚀 Make sure you're confident with these fundamentals. 👋
 
 ---
+
+
