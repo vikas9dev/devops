@@ -1,0 +1,21 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "eurolinux-vagrant/centos-stream-9"
+  config.vm.hostname = "nexus-server"
+  config.vm.network "private_network", ip: "192.168.56.11"
+  config.vm.network "forwarded_port", guest: 8081, host: 8081, auto_correct: true
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "2048"
+    vb.cpus = 2
+  end
+
+  # Copy and run your custom Nexus setup script
+  config.vm.provision "file", source: "nexus-setup.sh", destination: "/home/vagrant/nexus-setup.sh"
+  config.vm.provision "shell", inline: <<-SHELL
+    set -e
+    echo "Running Nexus setup script..."
+    chmod +x /home/vagrant/nexus-setup.sh
+    sudo /home/vagrant/nexus-setup.sh
+    echo "✅ Nexus setup complete. Access it at http://192.168.56.11:8081"
+  SHELL
+end
