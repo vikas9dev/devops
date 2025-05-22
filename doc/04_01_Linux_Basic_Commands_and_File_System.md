@@ -57,7 +57,7 @@ The command prompt tells you:
 
 - **User**: `vagrant`
 - **Host**: Usually `localhost`
-- **~ (tilde)**: Represents home directory
+- **~ (tilde)** : Represents home directory
 - **$**: Indicates a regular user shell
 
 ## 🔐 Becoming the Root User
