@@ -154,7 +154,7 @@ The `/var/lib/jenkins` directory contains the Jenkins installation files. It is 
    ```
 2. Access Jenkins at:  
    - `http://localhost:8080` (port-forwarded)  
-   - OR `http://192.168.33.10:8080` (private network)  
+   - OR `http://192.168.56.10:8080` (private network)  
 
 ![Unlock Jenkins](images/Unlock_Jenkins.png)
 
@@ -163,7 +163,7 @@ The `/var/lib/jenkins` directory contains the Jenkins installation files. It is 
 ### **⚙️ Step 4: Configure Jenkins**  
 1. **Install suggested plugins**. Click on the "Select Plugins to Install" button to install plugins. Click on "Install" button to proceed. It will take sometime.
 2. **Create first admin user** with secure credentials. Example: `admin`, `password`  
-3. **Set Jenkins URL** to `http://localhost:8080` or `http://192.168.33.10:8080`  
+3. **Set Jenkins URL** to `http://localhost:8080` or `http://192.168.56.10:8080`  
 4. Save and Finish. Click on the button:- "Start using Jenkins".
 
 In the "Manage Jenkins" page, you can configure Jenkins by adding plugins, customizing the UI, and more.
