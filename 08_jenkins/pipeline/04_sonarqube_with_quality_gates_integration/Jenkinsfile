@@ -1,0 +1,145 @@
+pipeline{
+    agent any
+    tools{
+        // get Maven Name from Jenkins > Manage Jenkins > Tools > Maven Installations
+        // use same name here
+        maven "MAVEN_3.9"
+        // get JDK Name from Jenkins > Manage Jenkins > Tools > JDK Installations
+        // use same name here
+        jdk "JDK_21"
+    }
+    stages{
+        stage("Fetch Code"){
+            steps{
+                echo "========Fetching Code========"
+                git branch: 'atom', url: 'https://github.com/vikas9dev/vprofile-project.git'
+            }
+            post{
+                always{
+                    echo "========Fetch Code - always========"
+                }
+                success{
+                    echo "========Fetch Code executed successfully========"
+                }
+                failure{
+                    echo "========Fetch Code execution failed========"
+                }
+            }
+        }
+        stage("Build"){
+            steps{
+                echo "========Build========"
+                sh 'mvn install -DskipTests'
+            }
+            post{
+                always{
+                    echo "========Build - always========"
+                }
+                success{
+                    echo "========Build executed successfully========"
+                    echo "Archiving Artifact"
+                    archiveArtifacts artifacts: '**/*.war'
+                }
+                failure{
+                    echo "========Build execution failed========"
+                }
+            }
+        }
+        stage("Unit Test"){
+            steps{
+                echo "========Unit Test========"
+                sh 'mvn test'
+            }
+            post{
+                always{
+                    echo "========Unit Test - always========"
+                }
+                success{
+                    echo "========Unit Test executed successfully========"
+                }
+                failure{
+                    echo "========Unit Test execution failed========"
+                }
+            }
+        }
+        stage("Checkstyle Analysis"){
+            steps{
+                echo "========Checkstyle Analysis========"
+                sh 'mvn checkstyle:checkstyle'
+            }
+            post{
+                always{
+                    echo "========Checkstyle Analysis - always========"
+                }
+                success{
+                    echo "========Checkstyle Analysis executed successfully========"
+                }
+                failure{
+                    echo "========Checkstyle Analysis execution failed========"
+                }
+            }
+        }
+        stage("Sonar Code Analysis"){
+            // use the same name (Manage Jenkins > SonarQube Scanner Installations > Name)
+            environment {
+                scannerHome = tool 'Sonar6.2' 
+            }
+            steps{
+                echo "========Sonar Code Analysis========"
+                withSonarQubeEnv('sonar-server'){ // use the same name which you have used in the Jenkins 
+                    sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile \
+                   -Dsonar.projectName=vprofile-repo \
+                   -Dsonar.projectVersion=1.0 \
+                   -Dsonar.sources=src/ \
+                   -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
+                   -Dsonar.junit.reportsPath=target/surefire-reports/ \
+                   -Dsonar.jacoco.reportsPath=target/jacoco.exec \
+                   -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml'''
+                }
+            }
+            post{
+                always{
+                    echo "========Sonar Code Analysis - always========"
+                }
+                success{
+                    echo "========Sonar Code Analysis executed successfully========"
+                }
+                failure{
+                    echo "========Sonar Code Analysis execution failed========"
+                }
+            }
+        }
+        stage('Quality Gate'){
+            steps{
+                echo "========Quality Gate========"
+                timeout(time: 1, unit: 'HOURS') {
+                    // Parameter indicates whether to set pipeline to UNSTABLE if Quality Gate fails
+                    // true = set pipeline to UNSTABLE if Quality Gate fails
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+            post{
+                always{
+                    echo "========Quality Gate - always========"
+                }
+                success{
+                    echo "========Quality Gate executed successfully========"
+                }
+                failure{
+                    echo "========Quality Gate execution failed========"
+                }
+            }
+        }
+    }
+    post{
+        always{
+            echo "========always========"
+        }
+        success{
+            echo "========pipeline executed successfully ========"
+        }
+        failure{
+            echo "========pipeline execution failed========"
+        }
+    }
+}

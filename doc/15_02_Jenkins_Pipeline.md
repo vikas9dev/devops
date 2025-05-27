@@ -587,13 +587,13 @@ Imagine seeing **30 bugs** and hundreds of **code smells** in your project—�
 Let’s walk through how you can create one:
 
 * Head over to **Quality Gates**, click **Create**, and name it something like `vprofile-G`.
-* Unlock editing ✏️ and **add a condition** like:
+* Unlock editing ✏️ and **add a condition** like (Use `On Overall Code`):
   *“If overall bugs > 10, mark the analysis as failed.”*
   (Since you already have 30 bugs, this threshold ensures your code will fail if issues persist 🐞).
 
 Now, link this new gate to your project:
 
-* Go to the project, click the dropdown for **Quality Gate**, and select your custom gate instead of the default one 🔄.
+* Go to the project, click the dropdown for **Quality Gate**, and select your custom gate instead of the default one 🔄. It will say:- "Changes will be applied after the next analysis."
 
 But here’s the catch: your Jenkins pipeline might just **upload the analysis results** without actually checking the Quality Gate status 😬. To enable real-time gate validation, we need to **integrate SonarQube with Jenkins using a webhook** 🔁.
 
@@ -603,14 +603,25 @@ Here’s how to set it up:
 2. Name it `jenkins-ci-webhook`.
 3. Use the format:
    `http://<JENKINS_PRIVATE_IP>:8080/sonarqube-webhook`
-   (No trailing slash! 🛑)
+   (No trailing slash! 🛑).
+   For VM use:- `http://192.168.56.10:8080/sonarqube-webhook`
 4. Double-check the spelling. One typo and it won't work 😅.
 5. Make sure Jenkins’ **security group allows inbound traffic** on port 8080 from the SonarQube server 🔐.
 
 Once that’s in place:
 
 * Update your **Jenkins pipeline code** to include the **`Quality Gate` stage** 🧱.
-* This stage will pause and wait for SonarQube’s response—**pass or fail based on your custom rules** ⚖️.
+* This stage will pause and wait for SonarQube’s response—**pass or fail based on your custom rules** ⚖️. See the Jenkinsfile [here](/08_jenkins/pipeline/04_sonarqube_with_quality_gates_integration/Jenkinsfile).
+
+```groovy
+stage('Quality Gate') {
+    steps {
+        timeout(time: 1, unit: 'HOURS') {
+            waitForQualityGate abortPipeline: true
+        }
+    }
+}
+```
 
 When you re-run the pipeline:
 
@@ -618,15 +629,280 @@ When you re-run the pipeline:
 * Jenkins will receive the result and fail the stage if the **bug threshold is breached** ❌.
 * Check the **console output**—you should see `Pipeline aborted due to quality gate failure` 🛑.
 
-Finally, once you're done testing:
+Finally, once you're done testing, in SonarQube > Projects > Quality Gates, you can:
 
 * Either raise the bug threshold to 50 🧹
 * Or switch back to the default **Sonar Way** quality gate for smoother builds 🟢.
 
 🔁 Now you're all set to continue with the pipeline and deploy confidently, knowing your code meets the quality standards you defined!
 
-Next up: 🎯 **Versioning and uploading artifacts to Nexus**—let’s go! 🚀
+---
+
+## 9. 🚀 Uploading Artifacts to Nexus Repository with Jenkins
+
+Now that we’ve successfully built, tested, and analyzed our code 🧪, it’s time for the next big step: **uploading our artifacts to a Nexus repository** 📦. But before jumping in, let’s understand what Nexus is and why it’s so useful in a CI/CD pipeline.
+
+### 🤔 What is Nexus Sonatype Repository?
+
+**Nexus (by Sonatype)** is a **universal artifact repository** — a centralized location to store, retrieve, and manage build artifacts and dependencies. It supports a wide range of repository formats like:
+
+* 📦 **Maven** – for Java dependencies
+* 🐧 **APT/YUM** – for Debian/RHEL packages
+* 🐳 **Docker** – for container images
+* 🧪 **NuGet** – for .NET packages
+* 📦 **npm** – for Node.js packages
+
+While we’ll use Nexus to **upload our own artifacts**, it can also act as a **proxy repository**, caching third-party dependencies to speed up builds and reduce external network dependency 🌐.
+
+### 🛠️ Setting Up the Nexus Repository
+
+We’ve already installed and launched the Nexus server (runs on Java ☕). To start using it:
+
+1. Access Nexus in your browser using the **public IP** on port **8081**
+2. Log in with the admin credentials you set earlier
+3. Navigate to **Settings → Repositories → Create Repository**
+4. Select **Maven2 (hosted)** as the repository type – since we want to upload artifacts
+5. Name it something like `vprofile-repo`
+6. Click **Create Repository**
+
+> 🧠 Use “hosted” for uploading, “proxy” for downloading, and “group” to combine both.
+
+### 🔐 Add Nexus Credentials in Jenkins
+
+Before integrating Nexus with Jenkins, we need to securely store our Nexus login credentials.
+
+1. Go to **Jenkins → Manage Jenkins → Credentials**
+2. Select **Global credentials → Add Credentials**
+3. Choose **“Username with password”**
+4. Enter your Nexus credentials (e.g., `admin` / `xI#84HPn9,3_`)
+5. Set the **ID** as `nexus-login` and give it a description
+
+> ⚠️ Never expose credentials publicly — this is just for local testing!
+
+In the next section, we’ll write the Jenkins pipeline code to **publish the artifact** to our Nexus repository, handle versioning, and make it accessible to deployment or ops teams 🚀.
+
+See you in the next part, where the real DevOps magic begins! ✨
 
 ---
 
-## 9. 
+## 10. 📦 Automating Artifact Upload to Nexus via Jenkins Pipeline
+
+Now that our CI pipeline is building and testing code smoothly ✅, it’s time to take things a step further — by **automatically uploading the artifact to a Nexus repository** using Jenkins! Let’s walk through how to achieve this with a plugin and some smart scripting 🚀.
+
+### 🔌 Using the Nexus Artifact Uploader Plugin
+
+To upload artifacts to Nexus, we’ll use the **Nexus Artifact Uploader** plugin. If you’re not familiar with the syntax, don’t worry! You can quickly search online or ask tools like **ChatGPT** 🧠 for guidance. Just search for:
+
+```
+Nexus Artifact Uploader pipeline syntax
+```
+
+You'll find examples from plugin documentation and GitHub repositories. The key parameters we’ll use include:
+
+* `nexusVersion`: e.g., `nexus3`
+* `protocol`: usually `http`
+* `nexusUrl`: your Nexus server’s IP and port
+* `groupId`: logical grouping (we used `QA`)
+* `version`: this should be **dynamic** — we'll combine Jenkins environment variables to generate unique versions like `BuildID-Timestamp`
+* `repository`: your hosted Nexus repository (e.g., `vprofile-repo`)
+* `credentialsId`: Jenkins credentials to authenticate with Nexus (e.g., `nexus-login`)
+* `artifactId`, `file`, and `type`: details of the artifact to be uploaded
+
+### 🕒 Configuring Dynamic Versioning
+
+To ensure each build has a **unique version**, we’ll use Jenkins environment variables:
+
+* `${env.BUILD_ID}` – current build number
+* `${env.BUILD_TIMESTAMP}` – we enable this via the **Build Timestamp Plugin**
+
+To set up the timestamp:
+
+1. Go to **Manage Jenkins → Configure System**
+2. Scroll to **Build Timestamp**, enable it ✅
+3. Customize the format (e.g., `yyMMdd_HHmm` for clarity)
+
+This gives you version strings like `37-250526_1015`, ensuring that every artifact remains distinct 💡.
+
+### 🧩 Building the Jenkins Pipeline Stage
+
+We’ll add a new `stage` in our [Jenkinsfile](/08_jenkins/pipeline/05_nexus_upload_artifact/Jenkinsfile) to upload the artifact to Nexus:
+
+```groovy
+stage('Upload Artifact') {
+  steps {
+    nexusArtifactUploader(
+      nexusVersion: 'nexus3',
+      protocol: 'http',
+      nexusUrl: '192.168.56.11:8081',
+      groupId: 'QA',
+      version: "${env.BUILD_ID}-${env.BUILD_TIMESTAMP}",
+      repository: 'vprofile-repo',
+      credentialsId: 'nexus-login',
+      artifacts: [
+        [artifactId: 'vprofile-app',
+         classifier: '',
+         file: 'target/vprofile-v2.war',
+         type: 'war']
+      ]
+    )
+  }
+}
+```
+
+Just ensure:
+
+* You’ve created the right **Nexus credentials** in Jenkins (we used `nexus-login`)
+* The artifact path (`target/vprofile-v2.war`) matches your build output
+
+In Jenkins, Create a new pipeline job, name it something like `vprofile-nexus-pipeline`, and add the Jenkinsfile from the previous section. Build it for 3-4 times to generate different artifact versions and upload them to Nexus.
+
+In Nexus, you should see the artifacts in the **Browse** section. Browse > vprofile-repo > QA.
+
+### 🛠️ Troubleshooting Tips
+
+💥 **Build Not Running?**
+If Jenkins hangs at *“Waiting for next available executor”*, it could be due to:
+
+* Master node out of disk space 💾
+  Fix it by SSH-ing into the Jenkins server and clearing the workspace:
+
+```bash
+cd /var/lib/jenkins/workspace
+rm -rf *
+```
+
+Then restart Jenkins:
+
+```bash
+sudo systemctl restart jenkins
+```
+
+💥 **Artifact Upload Fails?**
+Check:
+
+* The **Nexus URL/IP** — make sure it’s correct
+* Your **repository name**
+* The **artifact file path**
+* The **Jenkins credentials** being used
+
+### 🧪 Confirming the Upload
+
+Once the pipeline succeeds, go to **Nexus → Browse → vprofile-repo**, and you’ll see folders like:
+
+```
+QA/
+  └── 37-250526_1015/
+         └── webapp-37-250526_1015.war
+```
+
+Each build gets its own versioned folder — mission accomplished! 🎯
+
+### ⏭️ What’s Next?
+
+Manually checking pipeline success can be tedious 😓. In the **next stage**, we’ll integrate **notifications**, so Jenkins can automatically inform us whether the build succeeded or failed via email, Slack, or any preferred channel 📩🔔.
+
+If you’re continuing, keep your instances running. If not, remember to shut them down 📴.
+
+---
+
+## 11. 🚀 Automating Notifications in Jenkins with Slack Integration
+
+So far, we’ve built a solid **Continuous Integration (CI) pipeline**—but there's still something missing. 🤔 While our configuration from start to finish looks great, it *lacks* automation at the very beginning **and** proper notifications at the end.
+
+Currently, we're triggering the pipeline **manually**—clicking a button each time. Ideally, the pipeline should trigger **automatically** whenever a developer pushes code to the repository. We’ll cover that auto-trigger setup in an upcoming section. For now, let's focus on the **end part** of the pipeline: **notifications**. 📢
+
+When a pipeline run **passes or fails**, developers should be notified instantly. Jenkins supports a wide variety of notification plugins like:
+
+* 📩 Email
+* 💬 Slack
+* 🗨️ Google Chat
+* 📱 SMS
+* 🛰️ Amazon SNS
+* 🧑‍💻 Skype
+* 🧰 Webhooks
+* 🧵 Zoom, Jabber, and many more...
+
+In this session, we'll integrate **Slack**, one of the most popular collaboration tools in the industry. If you're not already using it, now's a great time to get started—it combines real-time chat with powerful integrations.
+
+### 🛠️ Step-by-Step: Integrating Slack with Jenkins
+
+1. **Install the Slack Notification Plugin in Jenkins**
+
+   * Go to **Manage Jenkins → Plugins → Available**
+   * Search for `Slack Notification`
+   * Install and restart Jenkins if prompted
+
+2. **Set Up a Slack Workspace**
+
+   * Visit [Slack](https://slack.com) and sign up or log in
+   * Create a **workspace** (e.g., `vikas9devops`)
+   * Set up a **channel** (e.g., `#devops-ci-cd`)
+
+3. **Add Jenkins Integration in Slack**
+
+   * Go to Slack **Apps Marketplace**. On Google, search for `Slack Marketplace`.
+   * Search for `Jenkins CI` and click **Add to Slack**
+   * Choose your channel (e.g., `#devops-ci-cd`) and allow access
+   * Slack will generate a **token**—save it securely
+
+4. **Configure Slack in Jenkins**
+
+   * In **Manage Jenkins → Configure System**
+   * Find the **Slack section**
+   * Enter your **Workspace name** (e.g., `vikas9dev`) and **channel name** (e.g., `#devops-ci-cd`)
+   * Add the token as a **Secret Text credential**
+   * Test the connection to ensure it works ✅. Slack channel will get notified about this test.
+
+### ✍️ Modify the Jenkins Pipeline
+
+Now let’s update the pipeline to send Slack notifications after every build—whether it succeeds or fails.
+
+```groovy
+def color_map(String buildStatus) {
+    return buildStatus == 'SUCCESS' ? 'good' : 'danger'
+}
+
+pipeline {
+    agent any
+
+    stages {
+        // your regular stages here
+    }
+
+    post {
+        always {
+            echo 'Sending Slack notification...'
+            slackSend (
+                channel: '#devops-ci-cd',
+                color: color_map(currentBuild.currentResult),
+                message: "${currentBuild.currentResult}: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' \n ${env.BUILD_URL}"
+            )
+        }
+    }
+}
+```
+
+✅ On success, the message will show up in green.
+❌ On failure, it’ll appear in red.
+
+### 🧪 Testing It Out
+
+To test both success and failure notifications:
+
+* Run your existing pipeline—it should send a green ✅ Slack message.
+* Add a dummy stage with an invalid command to simulate a failure. For example:
+
+```groovy
+stage('Test Slack') {
+    steps {
+        sh 'this-will-fail'
+    }
+}
+```
+
+Then re-run the pipeline, and you’ll see a red ❌ notification in Slack.
+
+This integration ensures that your team stays informed, without needing to check Jenkins constantly. 🧘‍♂️ Now that we’ve wrapped up notifications, we're ready to move on to the next phase: **containerization**! 🐳 In the next section, we’ll package our artifacts into Docker images and learn how to manage them effectively. 🎯
+
+---
+
