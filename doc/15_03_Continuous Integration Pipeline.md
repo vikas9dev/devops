@@ -171,11 +171,7 @@ We’ll pass two key arguments to `docker.build()`:
 - 🏷️ **Image name** (with tag)
 - 📁 **Path to the Dockerfile**
 
-Our Dockerfile lives in:
-
-```
-docker-files/app/multistage/Dockerfile
-```
+Our Dockerfile lives in:- [`vprofile-project/Docker-files/app/multistage/Dockerfile`](https://github.com/vikas9dev/vprofile-project/blob/docker/Docker-files/app/multistage/Dockerfile)
 
 It's a **multi-stage Dockerfile**:
 
@@ -343,10 +339,6 @@ While your instance is rebooting, let’s set up the necessary AWS services:
    - After user creation, go inside it > **Security Credentials**.
    - Create **Access Key & Secret Key** with **CLI** use case and **download the CSV file**.
 
-===========================================================================================
-DONE TILL HERE.
-===========================================================================================
-
 2. **Create ECR Repository:**
    - Go to AWS → ECR → **Create Repository**.
    - Name it something like `vprofile-app-image`.
@@ -359,7 +351,7 @@ Back in Jenkins:
 - Go to **Manage Jenkins → Plugins → Available**
 - Search and install the following plugins:
 
-  - ✅ AWS SDK for Jenkins
+  - ✅ Amazon Web Services SDK: All
   - ✅ Amazon ECR
   - ✅ Docker Pipeline
   - ✅ CloudBees Docker Build and Publish
@@ -373,7 +365,7 @@ Now let’s store the AWS credentials safely in Jenkins:
 - Go to **Manage Jenkins → Credentials → System → Global credentials**
 - **Add Credentials → Kind: AWS Credentials**
 - Use the access key and secret key from the CSV file
-- Set **ID** as `aws-creds` (or whatever you use in your pipeline script)
+- Set **ID** as `awscreds` (or whatever you use in your pipeline script). We have used `registryCredential = 'ecr:us-east-1:awscreds'` in the pipeline script inside Environment Variables section.
 
 ### 🧱 Update and Run the Pipeline
 
@@ -381,7 +373,7 @@ Make sure your pipeline script uses:
 
 - The correct **ECR URI** for image tagging and pushing
 - The right **region** (e.g., `us-east-1`)
-- The correct **credential ID** (e.g., `aws-creds`)
+- The correct **credential ID** (e.g., `awscreds`)
 
 Your pipeline should:
 
@@ -407,4 +399,301 @@ If you're continuing, keep your instances running. If you're taking a break, rem
 
 ---
 
-## 4.
+## 4. 🚀 From CI to CD: Deploying Docker Images to Amazon ECS 🐳➡️☁️
+
+![Amazon ECS](/doc/images/Amazon_ECS.png)
+
+In this session, we’re shifting gears — it's time to move from **Continuous Integration (CI)** to **Continuous Delivery (CD)**! 🎯 Let’s take our Docker images beyond just building and testing — we’re going to **deploy them to the cloud**. 🌥️
+
+You already know how our CI pipeline works:
+
+* A developer pushes code to GitHub 🧑‍💻
+* Jenkins fetches the code ⚙️
+* Tests run ✅
+* Code is analyzed and results are uploaded to SonarQube 📊
+* The quality gate is checked 🚧
+* If all is well, the Docker image is published to **Amazon ECR (Elastic Container Registry)** 📦
+
+Now it’s time to host that Docker image. This is where **Amazon ECS (Elastic Container Service)** comes in — a platform that runs and manages your containers securely and at scale. Think of ECS as your Docker image’s new home 🏠🔐.
+
+In a production setup, ECS will:
+
+* Fetch the latest Docker image from ECR 🐋
+* Deploy it as a running container service 🛠️
+* Ensure reliability, scalability, and security 🔄🔐📈
+
+Sure, for local development or testing, you can simply use Docker Engine and run containers with `docker run`. But in production? That’s not enough. You’d have to manage the VM, the engine, networking, and security yourself 😰 — no thanks!
+
+For production-grade deployments, you need a **container orchestration platform** like **Kubernetes**. But don’t worry — we’ll cover that in-depth in a later section. Options like:
+
+* **EKS** (Elastic Kubernetes Service) from AWS ☁️🐳
+* **AKS** from Azure ☁️🔷
+* **GKE** from Google ☁️🔵
+* **OpenShift** by Red Hat 🎩
+
+...will all be explored in detail soon.
+
+For now, we’ll keep things simple and reliable with **Amazon ECS**. It’s perfect for launching containers at scale with minimal configuration — and it integrates smoothly with your CI/CD pipeline. 🚀
+
+In the next lecture, we’ll dive into the actual **pipeline code** and see how to add one more stage to deploy to ECS, along with the **prerequisites** you’ll need.
+
+Ready to complete the pipeline? Let’s go! 👉💻
+
+---
+
+## 5. 🛠️ Finalizing the CI/CD Pipeline: Deploying to Amazon ECS 🚀🐳
+
+Alright, let’s dive into the code that completes our CI/CD pipeline by **deploying our Docker image to Amazon ECS**! 📦➡️🖥️
+
+Up to the CI part, everything remains the same — code is committed, tested, analyzed, and the Docker image is pushed to **Amazon ECR**. Now comes the **CD (Continuous Delivery)** part, where we deploy that image to **Amazon ECS**, as discussed earlier.
+
+### 🔧 Defining Deployment Variables
+
+```groovy
+environment {
+    // new ECS variables
+    clusterName = 'vprofile-cluster'
+    serviceName = 'vprofile-app-task-service-bqx25kvp'
+}
+```
+
+We start by setting two important variables in our pipeline:
+
+* `cluster`: This is the name of the ECS cluster where your service will run.
+* `service`: This refers to the ECS service responsible for running the containerized task.
+
+An **ECS service** pulls the Docker image from **ECR**, runs your container, and can also be configured to work with **Elastic Load Balancers (ELB)** for routing traffic efficiently ⚖️💡.
+
+```groovy
+stage('Deploy to ECS') {
+    steps {
+        withAWS(credentials: 'awscreds', region: 'us-east-1') {
+            sh "aws ecs update-service --cluster ${clusterName} --service ${serviceName} --force-new-deployment"
+        }
+    }
+}
+```
+
+Before using these variables, make sure to:
+
+1. **Create an ECS cluster**
+2. **Create a service within that cluster**
+
+These are prerequisites before moving on to the deployment stage.
+
+### 🔌 Installing the Jenkins Plugin
+
+To deploy from Jenkins, we use a specific plugin:
+
+```
+Pipeline: AWS Steps
+```
+
+This plugin enables Jenkins to interact with AWS services through pipeline steps.
+
+You’ll also need:
+
+* AWS credentials (already saved in Jenkins 🔐)
+* Your target AWS region 🌍
+
+Optional: To view the steps in better way, you can install the `Pipeline: Stage View` plugin.
+
+### 🖥️ Deploying with AWS CLI in Jenkins
+
+Once the plugin is installed and credentials are configured, we execute a shell command in Jenkins using `aws ecs update-service`. Here's the command structure:
+
+```bash
+aws ecs update-service \
+  --cluster <cluster-name> \
+  --service <service-name> \
+  --force-new-deployment
+```
+
+What this command does:
+
+* Pulls the **latest Docker image** from ECR 🐳
+* **Stops the old task** running the previous image ❌
+* **Starts a new task** with the updated container ✅
+
+This is the final piece of the puzzle 🧩. With this stage added, your CI/CD pipeline is now capable of **automatically delivering and deploying Dockerized applications** to **Amazon ECS** — fast, reliable, and production-ready! 🎉
+
+Get ready — in the next lecture, we’ll see this in action with the complete pipeline code! 👨‍💻📈
+
+---
+
+## 6. 🚀 Setting Up an ECS Cluster and Deploying Your Container
+
+In this section, we’ll walk through how to set up an **Amazon ECS (Elastic Container Service)** cluster and run your containerized application on it using **AWS Fargate** — a powerful serverless compute engine. Let’s dive right in! 🐳✨
+
+First, head over to the ECS section in your AWS Console. 
+
+### 🌐 Why ECS?
+
+Amazon ECS is a fully managed container orchestration service that makes it incredibly easy to deploy, manage, and scale containerized applications. It’s reliable, scalable, and integrates beautifully with the rest of the AWS ecosystem.
+
+### 🛠️ Step 1: Create an ECS Cluster
+
+Click on **"Clusters" > "Create Cluster"**, and name it something like `vprofile-cluster`. Leave the subnet and VPC selections as default — AWS will pick all the availability zones for you.
+
+#### 🏗️ Launch Types:
+
+* **AWS Fargate** (recommended): Fully serverless — AWS handles the compute provisioning, scaling, and infrastructure.
+* **EC2 Launch Type**: Requires managing EC2 instances and capacity.
+* **ECS Anywhere**: Allows you to bring your own infrastructure.
+
+Choose **Fargate** for a hassle-free, serverless deployment. Also, in Monitoring section, enable **Container Insights with Enhanced Observability** to monitor resource utilization like CPU and memory through CloudWatch 📊.
+
+In the **Tags** section, add a tag (e.g., `Name: vprofile-cluster`) — even though it says optional, omitting tags may cause issues in some setups.
+
+> 💡 If the cluster creation fails, don’t worry! Just repeat the process with the same settings — sometimes it's a minor glitch.
+
+### 🧱 Step 2: Define a Task Definition
+
+Next, we create a **task definition** (e.g., `vprofile-app-task`), which is essentially a blueprint for our container: image source, resources, ports, etc.
+
+* **Launch Type**: AWS Fargate
+* **Architecture**: Linux, x86\_64
+* **CPU & Memory**: 1 vCPU and 2GB RAM (minimum for Fargate)
+* **Task Execution Role**: Let AWS create a new role
+* **Container Details**: Name it something like `vproapp`, Use the URI from your ECR repository (like `825765386084.dkr.ecr.us-east-1.amazonaws.com/vprofile-app-image`).
+* **Port Mapping**: Container port **8080** (since Tomcat runs on this)
+* **Logging**: Enable Log collection (Amazon CloudWatch).
+* **Tags**: Add a tag (e.g., `Name: vprofile`)
+
+📌 **Important**: After creating the task definition, open the task definition, and click on the link of "Task Execution Role"  > `ecsTaskExecutionRole` (Or go to IAM > Roles > `ecsTaskExecutionRole`), and **attach the `CloudWatchLogsFullAccess` policy** (Add Permissions > Attach Policies) to it so your logs can be collected without errors.
+
+### 🧳 Step 3: Launch the Service
+
+Now that the cluster and task definition are ready, let’s launch the container as a **service** in ECS. Go to created Cluster > vprofile > Services > Create Service.
+
+* **Launch Type**: Fargate
+* **Service Type**: `Service` (for long-running tasks like web apps)
+* **Task Definition**: In Family, choose the one (task) you just created.
+* **Service Name**: Something like `vprofile-app-svc`
+* **Desired Tasks**: 1 (you can scale this up later)
+* **Security Groups**: Create a new security group as below.
+
+Disable **Deployment Failure Detection** for now — it can interfere with first-time deployments.
+
+#### 🔒 Security Group
+
+Create a new security group (e.g., `vproapp-ecs-elb-sg`):
+
+* **Allow HTTP (port 80) from Anywhere** — for external access via Load Balancer
+* **Allow Custom TCP (port 8080) from Anywhere** — for internal communication between the Load Balancer and container
+
+#### ⚖️ Load Balancer
+
+* Select **Application Load Balancer**
+* **Listener Port**: 80
+* **Target Group Port**: 8080
+* Provide a name like `vprofile-elb-ecs` and `vprofile-ecs-tg`
+
+Click **Create Service** — this might take a few minutes (up to 5-10 minutes)  ⏳
+
+### ✅ Validate Your Deployment
+
+Once the service is running:
+
+* Go to **ECS > Services**, verify that **1 of 1 task** is running.
+* Click on the **Load Balancer URL** (DNS Name) to access your application in the browser — your containerized app should now be live! 🎉 You can also get the DNS Name from ECS > Clusters > vprofile-cluster > Configuration and Networking > Network Configuration > DNS names. 
+
+You can also check:
+
+* **Logs** under ECS Task > Container > Logs
+* **Target Group Health** in the EC2 > Load Balancers section
+
+In this setup, we manually deployed our container by referencing the Docker image in the task definition. In the next section, we'll automate this through **Jenkins** — pushing a new Docker image and triggering an ECS service update for a seamless CI/CD pipeline. 🔄👨‍💻
+
+Stay tuned! 🚀
+
+---
+
+## 7. 🚀 Deploying to ECS from Jenkins: Complete CI/CD in Action! 🧑‍💻🐳
+
+Alright, it's showtime! We're now ready to complete our CI/CD pipeline by automating the deployment of our Docker container to AWS ECS from Jenkins 💡.
+
+We'll start by feeding the **ECS cluster** and **service information** into the Jenkins pipeline script. First things first—grab your ECS details:
+
+* 🏗️ **Cluster Name:** `vprofile-cluster`
+* 🔧 **Service Name:** `vprofile-app-task-service-bqx25kvp`
+
+```groovy
+environment {
+  clusterName = 'vprofile-cluster'
+  serviceName = 'vprofile-app-task-service-bqx25kvp'
+}
+stage('Deploy to ECS') {
+    steps {
+        withAWS(credentials: 'awscreds', region: 'us-east-1') {
+            sh '''
+                echo "Deploying to ECS..."
+                echo "Cluster: $clusterName"
+                echo "Service: $serviceName"
+
+                aws ecs update-service \
+                    --cluster "$clusterName" \
+                    --service "$serviceName" \
+                    --force-new-deployment
+            '''
+        }
+    }
+}
+```
+
+Ensure the **AWS CLI** is installed on your Jenkins instance. If you followed along earlier while setting up Docker, you likely have this installed already. If not, just log in to Jenkins and install the AWS CLI manually 🛠️.
+
+Also, double-check that your **AWS credentials** are properly configured in Jenkins and that the IAM user/role has sufficient permissions for ECS. If you set this up with me previously, no changes are needed ✅.
+
+Now, head to Jenkins and install the required plugin:
+
+1. Go to **Manage Jenkins → Manage Plugins**
+2. Search for `Pipeline: AWS Steps` or just `AWS Steps`
+3. Install the plugin 📦
+
+Next, create a new Jenkins job:
+
+* 🆕 Go to **New Item**
+* Name it something like `CICD-Pipeline-ECS`
+* Choose **Pipeline** as the project type
+
+Before you paste your pipeline code, verify the AWS region in your script. Mine is `us-east-2`—make sure to replace it with your region if different 🌍.
+
+Once you've saved the pipeline script, it's time to **test the deployment**! 🎯
+
+Head over to **ECS → Tasks** and note the current container ID. When Jenkins executes the `aws ecs update-service --force-new-deployment` command, it will:
+
+* 🚀 Spin up a new container with the **latest Docker image**
+* 📦 Gradually decommission the old container
+
+Monitor the ECS **deployments** and **events** tabs—you’ll see a new task get created and the older one transitioning out. With just one task in our setup (for simplicity and low cost), ECS will seamlessly replace the old container with the new one 🔄.
+
+Check the container logs to verify that your application (`vprofile`) has come up successfully and is generating logs 📋.
+
+After a short wait, you'll see only one **healthy running task**, and the previous one will be marked as **stopped**. 🎉
+
+Congratulations! You've completed a full CI/CD cycle:
+
+* ✅ Fetched code
+* 🛠️ Built Docker image
+* 🔍 Ran code analysis
+* 📤 Pushed to Amazon ECR
+* 🚀 Deployed to ECS using Jenkins
+
+Later in the course, we'll take things a step further by deploying to a **Kubernetes cluster**. But for now, this wraps up our ECS deployment journey. See you in the next one! 👋📘
+
+---
+
+## 8. 🔥 Cleaning Up After Deployment: A Quick Wrap-Up 🧹
+
+Alright, now that the deployment is done, it’s time for some cleanup! 🎯
+
+Let’s start with Jenkins and SonarQube. If you're done using them for now, feel free to stop their services. 🚫 For SonarQube or Nexus, you can even delete them entirely if you wish. However, for Jenkins, it's a good idea to **just stop it** rather than deleting—this way, you can reuse the same setup later without starting from scratch. 💡
+
+Next up: your **ECS Cluster**. You can’t delete it straight away. First, head over to your **ECS service**, click **Edit**, and set the **desired task count to zero**. ✅ Update the service, then go ahead and delete it. Once the service is removed, you can try deleting the cluster.
+
+If you encounter an error like *“task is still running”*, don’t worry. ⏳ It just means a container is still active. You can stop the running task manually by selecting it and clicking **Stop**. Then, try deleting the cluster again. And voilà — it’s gone! 🎉
+
+That wraps up this part of the journey. See you in the next one! 🚀
+
+---
